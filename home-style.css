@@ -1,0 +1,21 @@
+.banner{
+    background-color: #004d99;
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+.container{
+    display: flex;
+}
+.sidebar{
+    width: 8.33%;
+    background-color: #f4f4f4;
+    padding: 10px;
+}
+.menu-item{
+    cursor: pointer;
+}
+.main-content{
+    flex-grow: 1;
+    padding: 10px;
+}

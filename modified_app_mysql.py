@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  # Importing CORS
 import mysql.connector
 from mysql.connector import Error
+import json
 
 app = Flask(__name__)
 CORS(app)
@@ -13,6 +14,8 @@ db_config = {
     'password': 'admin123',  # Replace with your MySQL password
     'database': 'user_db'
 }
+
+
 
 def create_connection():
     conn = None
@@ -100,6 +103,16 @@ def reset_password():
             conn.close()
     else:
         return jsonify({'message': 'Database connection failed'}), 500
+
+
+    
+@app.route('/system_usage')
+def system_usage():
+    with open('system_usage.json', 'r') as file:
+        data = file.readlines()  # 读取所有行
+    # 将每行的 JSON 字符串转换成字典
+    usage_data = [json.loads(line) for line in data]
+    return jsonify(usage_data)
 
 if __name__ == '__main__':
     app.run(debug=True)

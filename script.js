@@ -12,12 +12,19 @@ function login() {
     })
     .then(response => response.json())
     .then(data => {
-        alert(data.message);
+        if (data.message === 'Login successful') {
+            // 登录成功，跳转到 home.html
+            window.location.href = 'home.html';
+        } else {
+            // 登录失败，显示错误消息
+            alert(data.message);
+        }
     })
     .catch(error => {
         console.error('Error:', error);
     });
 }
+
 
 function register() {
     var username = document.getElementById('username').value; // 获取用户名
@@ -64,3 +71,6 @@ function resetPassword() {
         console.error('Error:', error);
     });
 }
+
+
+
