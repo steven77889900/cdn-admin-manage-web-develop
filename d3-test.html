@@ -2,104 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CPU Usage Dashboard</title>
-    <style>
-        /* CSS 样式 */
-        .chart-container {
-            width: 500px;
-            height: 200px;
-        }
-        .tooltip {
-            position: absolute;
-            text-align: center;
-            width: 80px;
-            height: 28px;
-            padding: 2px;
-            font: 12px sans-serif;
-            background: lightsteelblue;
-            border: 0px;
-            border-radius: 8px;
-            pointer-events: none;
-        }
-    </style>
+    <title>CPU Usage Chart</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
 </head>
 <body>
-    <div id="chart" class="chart-container"></div>
-    <script>
-        // 生成模拟数据
-        var data = d3.range(15).map(function(i) {
-            return {
-                time: new Date(Date.now() - (15 - i) * 60 * 1000),
-                cpu: Math.random() * 100
-            };
-        });
-
-        var svg = d3.select("#chart").append("svg")
-            .attr("width", "500")
-            .attr("height", "200"),
-            margin = {top: 20, right: 20, bottom: 30, left: 50},
-            width = +svg.attr("width") - margin.left - margin.right,
-            height = +svg.attr("height") - margin.top - margin.bottom,
-            g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-        
-        var x = d3.scaleTime().rangeRound([0, width]);
-        var y = d3.scaleLinear().rangeRound([height, 0]);
-
-        // 定义颜色比例尺
-        var color = d3.scaleThreshold()
-            .domain([20, 70, 90])
-            .range(["green", "blue", "yellow", "red"]);
-        
-        x.domain(d3.extent(data, function(d) { return d.time; }));
-        y.domain([0, 100]);
-        
-        g.append("g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x))
-            .select(".domain")
-            .remove();
-        
-        g.append("g")
-            .call(d3.axisLeft(y))
-            .append("text")
-            .attr("fill", "#000")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", "0.71em")
-            .attr("text-anchor", "end")
-            .text("CPU Usage (%)");
-        
-        // 创建柱状图
-        var bars = g.selectAll(".bar")
-            .data(data)
-            .enter().append("rect")
-            .attr("class", "bar")
-            .attr("x", function(d) { return x(d.time); })
-            .attr("y", function(d) { return y(d.cpu); })
-            .attr("width", width / data.length)
-            .attr("height", function(d) { return height - y(d.cpu); })
-            .attr("fill", function(d) { return color(d.cpu); });  // 使用颜色比例尺设置颜色
-
-        // 创建提示框
-        var tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip")
-            .style("opacity", 0);
-
-        // 添加鼠标悬停事件
-        bars.on("mouseover", function(event, d) {
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html("Time: " + d.time + "<br/>CPU: " + d.cpu + "%")
-                .style("left", (event.pageX) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", function(d) {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        });
-    </script>
+    <div id="chart"></div>
+    <script src="d3-script.js"></script>
 </body>
 </html>
