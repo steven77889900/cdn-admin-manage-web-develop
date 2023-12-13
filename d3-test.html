@@ -4,10 +4,27 @@
     <meta charset="UTF-8">
     <title>CPU Usage Chart</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 4px;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
+    <div>
+        <label for="start-time">开始时间:</label>
+        <input type="datetime-local" id="start-time">
+        <label for="end-time">结束时间:</label>
+        <input type="datetime-local" id="end-time">
+        <button onclick="updateChart()">更新图表</button>
+    </div>
     <div id="chart"></div>
-    <!-- <script src="d3-script.js"></script> -->
-    <script src="d3-test2.js"></script>
+    <script src="d3-script.js"></script>
 </body>
 </html>
