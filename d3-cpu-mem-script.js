@@ -51,7 +51,7 @@ function updateCharts() {
         endTime = new Date(endTime);
     }
 
-    var apiUrl = `http://localhost:5000/api/usage?site=${selectedSite}&start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
+    var apiUrl = `http://localhost:5001/api/usage?site=${selectedSite}&start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
 
     fetch(apiUrl)
         .then(response => response.json())
