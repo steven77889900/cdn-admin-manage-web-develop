@@ -51,21 +51,24 @@ function updateCharts() {
         endTime = new Date(endTime);
     }
 
-    var apiUrl = `http://localhost:5001/api/usage?site=${selectedSite}&start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
+    var apiUrl = `http://localhost:5001/api/usage?start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
 
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
+          
             var cpuData = data.map(d => {
                 return {
                     date: new Date(d.data.time),
-                    value: d.data.cpu_usage
+                    value: d.data.cpu_usage,
+                    sitecode: d.site_code // 添加站点代码
                 };
             });
             var memoryData = data.map(d => {
                 return {
                     date: new Date(d.data.time),
-                    value: d.data.memory_usage
+                    value: d.data.memory_usage,
+                    sitecode: d.site_code // 添加站点代码
                 };
             });
 
@@ -124,11 +127,12 @@ function drawChart(svg, data, yAxisLabel) {
         .attr("r", 4)
         .attr("cx", d => x(d.date))
         .attr("cy", d => y(d.value))
+        .attr("fill", d => d.value > 50 ? "red" : "green")  // 根据值的大小设置圆点的颜色
         .on("mouseover", function (event, d) {
             tooltip.transition()
                 .duration(200)
                 .style("opacity", .9);
-            tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%")
+            tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + d.sitecode)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
