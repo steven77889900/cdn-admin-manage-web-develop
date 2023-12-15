@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function updateCharts() {
+    var selectedSite = document.getElementById("site-select").value;
     var startTime = document.getElementById("start-time").value;
     var endTime = document.getElementById("end-time").value;
 
@@ -50,7 +51,7 @@ function updateCharts() {
         endTime = new Date(endTime);
     }
 
-    var apiUrl = `http://localhost:5000/api/usage?start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
+    var apiUrl = `http://localhost:5000/api/usage?site=${selectedSite}&start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
 
     fetch(apiUrl)
         .then(response => response.json())
@@ -71,19 +72,19 @@ function updateCharts() {
             drawChart(cpuSvg, cpuData, "CPU Usage (%)");
             drawChart(memorySvg, memoryData, "Memory Usage (%)");
 
-            // 处理站点信息的显示
-            if (data.length > 0) {
-                var siteCode = data[0].site_code; // 假设站点代码在数据的第一个元素中
-                updateSiteInfo(siteCode); // 更新站点信息
-            }
+            // 更新站点信息
+            updateSiteInfo(selectedSite);
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
             drawChart(cpuSvg, [], "CPU Usage (%)");
             drawChart(memorySvg, [], "Memory Usage (%)");
-            updateSiteInfo('无法获取站点信息'); // 显示错误信息
+            updateSiteInfo('无法获取站点信息');
         });
 }
+
+// 其他函数 (drawChart, updateSiteInfo, formatTimestamp) 保持不变
+
 
 function drawChart(svg, data, yAxisLabel) {
     // 更新比例尺的域
