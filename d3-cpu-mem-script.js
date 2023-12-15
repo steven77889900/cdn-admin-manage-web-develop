@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始化 SVG 尺寸和边距
     margin = { top: 20, right: 30, bottom: 30, left: 50 };
     var width = 960 - margin.left - margin.right;
-    height = 500 - margin.top - margin.bottom;  // 将 height 定义为全局变量
+    height = 500 - margin.top - margin.bottom; 
 
     // 创建 CPU SVG 容器
     cpuSvg = d3.select("#cpu-chart").append("svg")
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 创建 X 和 Y 比例尺
     x = d3.scaleTime().range([0, width]);
     y = d3.scaleLinear().range([height, 0]);
- 
+
     // 创建提示框
     tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
@@ -55,28 +55,26 @@ function updateCharts() {
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            // 解析数据并提取所需字段
             var cpuData = data.map(d => {
-                var timestamp = Object.keys(d)[0];
                 return {
-                    date: new Date(timestamp),
-                    value: d[timestamp].cpu_usage
+                    date: new Date(d.data.time),
+                    value: d.data.cpu_usage
                 };
             });
             var memoryData = data.map(d => {
-                var timestamp = Object.keys(d)[0];
                 return {
-                    date: new Date(timestamp),
-                    value: d[timestamp].memory_usage
+                    date: new Date(d.data.time),
+                    value: d.data.memory_usage
                 };
             });
 
-            // 绘制 CPU 和 Memory 图表
             drawChart(cpuSvg, cpuData, "CPU Usage (%)");
             drawChart(memorySvg, memoryData, "Memory Usage (%)");
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
+            drawChart(cpuSvg, [], "CPU Usage (%)");
+            drawChart(memorySvg, [], "Memory Usage (%)");
         });
 }
 
