@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始化 SVG 尺寸和边距
     margin = { top: 20, right: 30, bottom: 30, left: 50 };
     var width = 960 - margin.left - margin.right;
-    height = 500 - margin.top - margin.bottom; 
+    height = 500 - margin.top - margin.bottom;
 
     // 创建 CPU SVG 容器
     cpuSvg = d3.select("#cpu-chart").append("svg")
@@ -70,11 +70,18 @@ function updateCharts() {
 
             drawChart(cpuSvg, cpuData, "CPU Usage (%)");
             drawChart(memorySvg, memoryData, "Memory Usage (%)");
+
+            // 处理站点信息的显示
+            if (data.length > 0) {
+                var siteCode = data[0].site_code; // 假设站点代码在数据的第一个元素中
+                updateSiteInfo(siteCode); // 更新站点信息
+            }
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
             drawChart(cpuSvg, [], "CPU Usage (%)");
             drawChart(memorySvg, [], "Memory Usage (%)");
+            updateSiteInfo('无法获取站点信息'); // 显示错误信息
         });
 }
 
@@ -140,6 +147,11 @@ function drawChart(svg, data, yAxisLabel) {
         .attr("dy", "1em")
         .style("text-anchor", "middle")
         .text(yAxisLabel);
+}
+
+function updateSiteInfo(siteCode) {
+    var siteInfoElement = document.getElementById('site-details');
+    siteInfoElement.textContent = `站点代码: ${siteCode}`;
 }
 
 function formatTimestamp(date) {
