@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始化 SVG 尺寸和边距
     margin = { top: 20, right: 30, bottom: 30, left: 50 };
     var width = 960 - margin.left - margin.right;
-    height = 500 - margin.top - margin.bottom;
+    height = 300 - margin.top - margin.bottom;
 
     // 创建 CPU SVG 容器
     cpuSvg = d3.select("#cpu-chart").append("svg")
@@ -127,10 +127,20 @@ function drawChart(svg, data, yAxisLabel) {
         .data(data)
         .enter().append("circle")
         .attr("class", "dot")
-        .attr("r", 4)
+        .attr("r", 1.5)
         .attr("cx", d => x(d.date))
         .attr("cy", d => y(d.value))
-        .attr("fill", d => d.value > 50 ? "red" : "green")  // 根据值的大小设置圆点的颜色
+        // .attr("fill", d => d.value > 50 ? "red" : "green")  // 根据值的大小设置圆点的颜色
+        .attr("fill", function(d) {
+            // 根据站点代码设置颜色
+            if (d.sitecode === "101") {
+                return "red"; // 站点101为红色
+            } else if (d.sitecode === "102") {
+                return "orange"; // 站点102为橘黄色
+            } else {
+                return "blue"; // 默认颜色
+            }
+        })
         .on("mouseover", function (event, d) {
             tooltip.transition()
                 .duration(200)
