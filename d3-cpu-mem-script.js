@@ -56,15 +56,16 @@ function updateCharts() {
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-          
-            var cpuData = data.map(d => {
+            var filteredData = selectedSite ? data.filter(d => d.site_code === selectedSite) : data;
+
+            var cpuData = filteredData.map(d => {
                 return {
                     date: new Date(d.data.time),
                     value: d.data.cpu_usage,
                     sitecode: d.site_code // 添加站点代码
                 };
             });
-            var memoryData = data.map(d => {
+            var memoryData = filteredData.map(d => {
                 return {
                     date: new Date(d.data.time),
                     value: d.data.memory_usage,
@@ -76,7 +77,9 @@ function updateCharts() {
             drawChart(memorySvg, memoryData, "Memory Usage (%)");
 
             // 更新站点信息
-            updateSiteInfo(selectedSite, data.length > 0 ? data[0].site_code : '无法获取站点信息');
+            // updateSiteInfo(selectedSite, data.length > 0 ? data[0].site_code : '无法获取站点信息');
+            updateSiteInfo(selectedSite, filteredData.length > 0 ? filteredData[0].site_code : '无法获取站点信息');
+
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
@@ -153,10 +156,13 @@ function drawChart(svg, data, yAxisLabel) {
         .style("text-anchor", "middle")
         .text(yAxisLabel);
 }
-function updateSiteInfo(selectedSite, siteCode) {
+function updateSiteInfo(selectedSite) {
     var siteInfoElement = document.getElementById('site-details');
-    siteInfoElement.innerHTML = `选择的站点: ${selectedSite} <br> 实际站点代码: ${siteCode}`;
+    // 如果selectedSite为空或未定义，则显示“所有站点”，否则显示选择的站点
+    var displayText = selectedSite ? `选择的站点: 站点 ${selectedSite}` : "选择的站点: 所有站点";
+    siteInfoElement.innerHTML = displayText;
 }
+
 
 
 function formatTimestamp(date) {
