@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from influxdb import InfluxDBClient
 from datetime import datetime
+from collections import defaultdict
 
 # 设置日志级别为INFO
 logging.basicConfig(level=logging.INFO)
@@ -31,11 +32,25 @@ def get_usage():
         'cpu_usage': psutil.cpu_percent(interval=1),
         'memory_usage': psutil.virtual_memory().percent
     }
+# 定义一个函数来获取TCP相关的监控数据。这里，我会简单示例如何获取总的TCP连接数和各种状态的TCP连接数：
+def get_tcp_stats():
+    tcp_connections = psutil.net_connections(kind='tcp')
+    status_counts = defaultdict(int)
+    for conn in tcp_connections:
+        status_counts[conn.status] += 1
+
+    return {
+        'site_code': SITE_CODE,
+        'time': time.strftime("%Y-%m-%d %H:%M:%S"),
+        'total_connections': len(tcp_connections),
+        'status_counts': dict(status_counts)
+    }
 
 # 定义一个函数来将CPU使用率和内存使用率写入到 InfluxDB
 def append_usage_to_influxdb():
     while True:
         usage = get_usage()
+        tcp_stats = get_tcp_stats()
         json_body = [{
             "measurement": "system_usage",
             "tags": {
@@ -47,7 +62,18 @@ def append_usage_to_influxdb():
                 "memory_usage": usage['memory_usage']
             }
         }]
+
+        tcp_json_body = [{
+            "measurement": "tcp_stats",
+            "tags": {
+                "site_code": tcp_stats['site_code']
+            },
+            "time": tcp_stats['time'],
+            "fields": tcp_stats['status_counts']
+        }]
         client.write_points(json_body)
+        client.write_points(tcp_json_body)
+
         time.sleep(1)
 
 # 定义一个API接口来返回CPU使用率和内存使用率
