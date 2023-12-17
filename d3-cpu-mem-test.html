@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <title>CPU and Memory Usage Chart</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
-
     <style>
         .tooltip {
             position: absolute;
@@ -16,7 +14,6 @@
             border-radius: 8px;
             pointer-events: none;
         }
-
         #sidebar {
             position: fixed;
             top: 0;
@@ -25,22 +22,16 @@
             height: 100%;
             background-color: lightgray;
         }
-
         #chart-container {
             margin-left: 220px;
-            /* Adjust the value as needed */
         }
-
-        ul,
-        li {
+        ul, li {
             border: 1px solid blue;
             background-color: lightblue;
         }
-
         #chart-container div {
             border: 1px solid black;
         }
-
         #site-info {
             margin-top: 20px;
             padding: 10px;
@@ -49,7 +40,6 @@
         }
     </style>
 </head>
-
 <body>
     <div id="sidebar">
         <ul id="sidebar-menu">
@@ -59,15 +49,13 @@
         </ul>
     </div>
     <div id="chart-container">
-
         <div>
-            <!-- 新增站点选择框 -->
+            <!-- 站点选择框 -->
             <label for="site-select">选择站点:</label>
             <select id="site-select">
-                <option value="">所有站点</option> <!-- 添加默认选项 -->
+                <option value="">所有站点</option>
                 <option value="101">站点 101</option>
                 <option value="102">站点 102</option>
-                <!-- 更多站点选项 -->
             </select>            
             <label for="start-time">开始时间:</label>
             <input type="datetime-local" id="start-time">
@@ -75,18 +63,15 @@
             <input type="datetime-local" id="end-time">
             <button onclick="updateCharts()">更新图表</button>
         </div>
-        <!-- 新增站点信息显示框 -->
         <div id="site-info">
             <h3>站点信息</h3>
-            <!-- 站点信息内容 -->
             <p id="site-details">站点信息将在这里显示</p>
         </div>
         <div id="cpu-chart"></div>
         <div id="memory-chart"></div>
-
+        <div id="network-chart"></div>
+        <div id="tcp-chart"></div>
     </div>
     <script src="d3-cpu-mem-script.js"></script>
 </body>
-
 </html>
-

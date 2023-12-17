@@ -1,5 +1,5 @@
 // 全局变量定义
-var cpuSvg, memorySvg, x, y, tooltip, height, margin;
+var cpuSvg, memorySvg, networkSvg, tcpSvg, x, y, tooltip, height, margin;
 
 document.addEventListener('DOMContentLoaded', function () {
     // 初始化 SVG 尺寸和边距
@@ -7,19 +7,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var width = 960 - margin.left - margin.right;
     height = 300 - margin.top - margin.bottom;
 
-    // 创建 CPU SVG 容器
-    cpuSvg = d3.select("#cpu-chart").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    // 创建 Memory SVG 容器
-    memorySvg = d3.select("#memory-chart").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    // 创建 SVG 容器
+    cpuSvg = createSvg("#cpu-chart", width, height);
+    memorySvg = createSvg("#memory-chart", width, height);
+    networkSvg = createSvg("#network-chart", width, height);
+    tcpSvg = createSvg("#tcp-chart", width, height);
 
     // 创建 X 和 Y 比例尺
     x = d3.scaleTime().range([0, width]);
@@ -37,10 +29,19 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(updateCharts, 3000);
 });
 
+function createSvg(selector, width, height) {
+    return d3.select(selector).append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+}
+
 function updateCharts() {
     var selectedSite = document.getElementById("site-select").value;
     var startTime = document.getElementById("start-time").value;
     var endTime = document.getElementById("end-time").value;
+    var metrics = 'cpu_usage,memory_usage,network_stats,tcp_stats'; // 请求所有监控数据
 
     // 处理时间输入为空的情况
     if (!startTime || !endTime) {
@@ -51,46 +52,49 @@ function updateCharts() {
         endTime = new Date(endTime);
     }
 
-    var apiUrl = `http://localhost:5001/api/usage?start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}`;
+    var apiUrl = `http://localhost:5001/api/usage?start_timestamp=${formatTimestamp(startTime)}&end_timestamp=${formatTimestamp(endTime)}&metrics=${metrics}`;
 
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            var filteredData = selectedSite ? data.filter(d => d.site_code === selectedSite) : data;
-
-            var cpuData = filteredData.map(d => {
-                return {
-                    date: new Date(d.data.time),
-                    value: d.data.cpu_usage,
-                    sitecode: d.site_code // 添加站点代码
-                };
-            });
-            var memoryData = filteredData.map(d => {
-                return {
-                    date: new Date(d.data.time),
-                    value: d.data.memory_usage,
-                    sitecode: d.site_code // 添加站点代码
-                };
-            });
-
-            drawChart(cpuSvg, cpuData, "CPU Usage (%)");
-            drawChart(memorySvg, memoryData, "Memory Usage (%)");
-
+            // 使用 selectedSite 过滤数据
+            var cpuData = filterDataBySite(data.cpu_usage, selectedSite);
+            var memoryData = filterDataBySite(data.memory_usage, selectedSite);
+            var networkData = filterDataBySite(data.network_stats, selectedSite);
+            var tcpData = filterDataBySite(data.tcp_stats, selectedSite);            
+            processData(cpuSvg, cpuData, "CPU Usage (%)", d => d.cpu_usage);
+            processData(memorySvg, memoryData, "Memory Usage (%)", d => d.memory_usage);
+            processData(networkSvg, networkData, "Network Stats", d => d.bytes_sent); // 示例
+            processData(tcpSvg, tcpData, "TCP Stats", d => d.ESTABLISHED); // 示例
             // 更新站点信息
-            // updateSiteInfo(selectedSite, data.length > 0 ? data[0].site_code : '无法获取站点信息');
-            updateSiteInfo(selectedSite, filteredData.length > 0 ? filteredData[0].site_code : '无法获取站点信息');
-
+            updateSiteInfo(selectedSite);            
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
-            drawChart(cpuSvg, [], "CPU Usage (%)");
-            drawChart(memorySvg, [], "Memory Usage (%)");
-            updateSiteInfo('无法获取站点信息');
         });
 }
+function filterDataBySite(data, selectedSite) {
+    if (selectedSite) {
+        return data.filter(d => d.site_code === selectedSite);
+    }
+    return data; // 如果没有选择站点，返回所有数据
+}
 
-// 其他函数 (drawChart, updateSiteInfo, formatTimestamp) 保持不变
 
+function processData(svg, data, label, valueAccessor) {
+    if (!data || data.length === 0) {
+        drawChart(svg, [], label);
+        return;
+    }
+
+    var chartData = data.map(d => ({
+        date: new Date(d.time),
+        value: valueAccessor(d),
+        sitecode: d.site_code
+    }));
+
+    drawChart(svg, chartData, label);
+}
 
 function drawChart(svg, data, yAxisLabel) {
     // 更新比例尺的域
@@ -130,30 +134,9 @@ function drawChart(svg, data, yAxisLabel) {
         .attr("r", 1.5)
         .attr("cx", d => x(d.date))
         .attr("cy", d => y(d.value))
-        // .attr("fill", d => d.value > 50 ? "red" : "green")  // 根据值的大小设置圆点的颜色
-        .attr("fill", function(d) {
-            // 根据站点代码设置颜色
-            if (d.sitecode === "101") {
-                return "red"; // 站点101为红色
-            } else if (d.sitecode === "102") {
-                return "orange"; // 站点102为橘黄色
-            } else {
-                return "blue"; // 默认颜色
-            }
-        })
-        .on("mouseover", function (event, d) {
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + d.sitecode)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", function () {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        });
+        .attr("fill", "blue")
+        .on("mouseover", (event, d) => showTooltip(event, d, yAxisLabel))
+        .on("mouseout", hideTooltip);
 
     // 添加 Y 轴标签
     svg.selectAll(".y-axis-label").remove();
@@ -166,14 +149,22 @@ function drawChart(svg, data, yAxisLabel) {
         .style("text-anchor", "middle")
         .text(yAxisLabel);
 }
-function updateSiteInfo(selectedSite) {
-    var siteInfoElement = document.getElementById('site-details');
-    // 如果selectedSite为空或未定义，则显示“所有站点”，否则显示选择的站点
-    var displayText = selectedSite ? `选择的站点: 站点 ${selectedSite}` : "选择的站点: 所有站点";
-    siteInfoElement.innerHTML = displayText;
+
+function showTooltip(event, d, yAxisLabel) {
+    tooltip.transition()
+        .duration(200)
+        .style("opacity", .9);
+    tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + d.sitecode)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY - 28) + "px");
 }
 
 
+function hideTooltip() {
+    tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+}
 
 function formatTimestamp(date) {
     function pad(number) {
@@ -188,4 +179,10 @@ function formatTimestamp(date) {
         ' ' + pad(date.getHours()) +
         ':' + pad(date.getMinutes()) +
         ':' + pad(date.getSeconds());
+}
+
+function updateSiteInfo(selectedSite) {
+    var siteInfoElement = document.getElementById('site-details');
+    var displayText = selectedSite ? `选择的站点: 站点 ${selectedSite}` : "选择的站点: 所有站点";
+    siteInfoElement.innerHTML = displayText;
 }

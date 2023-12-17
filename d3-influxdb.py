@@ -16,7 +16,6 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 CORS(app)
 
-
 # 连接到 InfluxDB
 client = InfluxDBClient(host='192.168.100.131', port=8086, username='root', password='root@admin123')
 client.switch_database('usage_database')
@@ -24,15 +23,14 @@ client.switch_database('usage_database')
 # 获取环境变量中的站点代码，如果没有设置，则默认为'101'
 SITE_CODE = os.getenv('site_code', '101')
 
-# 定义一个函数来获取CPU使用率和内存使用率
 def get_usage():
     return {
         'site_code': SITE_CODE,
-        'time': time.strftime("%Y-%m-%d %H:%M:%S"),  # 使用UTC时间，并按照InfluxDB格式
+        'time': time.strftime("%Y-%m-%d %H:%M:%S"),
         'cpu_usage': psutil.cpu_percent(interval=1),
         'memory_usage': psutil.virtual_memory().percent
     }
-# 定义一个函数来获取TCP相关的监控数据。这里，我会简单示例如何获取总的TCP连接数和各种状态的TCP连接数：
+
 def get_tcp_stats():
     tcp_connections = psutil.net_connections(kind='tcp')
     status_counts = defaultdict(int)
@@ -46,72 +44,109 @@ def get_tcp_stats():
         'status_counts': dict(status_counts)
     }
 
-# 定义一个函数来将CPU使用率和内存使用率写入到 InfluxDB
+def get_network_stats():
+    net_io = psutil.net_io_counters()
+    return {
+        'bytes_sent': net_io.bytes_sent,
+        'bytes_recv': net_io.bytes_recv,
+        'packets_sent': net_io.packets_sent,
+        'packets_recv': net_io.packets_recv
+    }
+
 def append_usage_to_influxdb():
     while True:
         usage = get_usage()
         tcp_stats = get_tcp_stats()
-        json_body = [{
-            "measurement": "system_usage",
-            "tags": {
-                "site_code": usage['site_code']
-            },
+        network_stats = get_network_stats()
+
+        cpu_json_body = [{
+            "measurement": "cpu_usage",
+            "tags": {"site_code": usage['site_code']},
             "time": usage['time'],
-            "fields": {
-                "cpu_usage": usage['cpu_usage'],
-                "memory_usage": usage['memory_usage']
-            }
+            "fields": {"cpu_usage": usage['cpu_usage']}
+        }]
+
+        memory_json_body = [{
+            "measurement": "memory_usage",
+            "tags": {"site_code": usage['site_code']},
+            "time": usage['time'],
+            "fields": {"memory_usage": usage['memory_usage']}
         }]
 
         tcp_json_body = [{
             "measurement": "tcp_stats",
-            "tags": {
-                "site_code": tcp_stats['site_code']
-            },
+            "tags": {"site_code": tcp_stats['site_code']},
             "time": tcp_stats['time'],
             "fields": tcp_stats['status_counts']
         }]
-        client.write_points(json_body)
+
+        network_json_body = [{
+            "measurement": "network_stats",
+            "tags": {"site_code": SITE_CODE},
+            "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "fields": network_stats
+        }]
+
+        client.write_points(cpu_json_body)
+        client.write_points(memory_json_body)
         client.write_points(tcp_json_body)
+        client.write_points(network_json_body)
 
         time.sleep(1)
 
-# 定义一个API接口来返回CPU使用率和内存使用率
 @app.route('/api/usage', methods=['GET'])
 def usage():
     start_timestamp = request.args.get('start_timestamp')
     end_timestamp = request.args.get('end_timestamp')
-    query = f"SELECT * FROM system_usage WHERE time >= '{start_timestamp}' AND time <= '{end_timestamp}'"
-    result = client.query(query)
-    points = list(result.get_points())
+    metrics = request.args.get('metrics', '')
 
-    formatted_data = []
-    for point in points:
-        # 解析 ISO 8601 格式的时间
-        time_obj = datetime.strptime(point['time'], '%Y-%m-%dT%H:%M:%SZ')
-        # 将时间格式化为所需格式
-        formatted_time = time_obj.strftime('%Y-%m-%d %H:%M:%S')
+    # 将metrics参数分解为列表
+    metrics_list = metrics.split(',') if metrics else []
 
-        formatted_point = {
-            "site_code": point.get('site_code', SITE_CODE),
-            "data": {
-                "time": formatted_time,
-                "cpu_usage": point['cpu_usage'],
-                "memory_usage": point['memory_usage']
-            }
-        }
-        formatted_data.append(formatted_point)
+    # 初始化返回数据字典
+    formatted_data = {}
+
+    # 只在metrics_list中包含相应的指标时执行查询
+    if 'cpu_usage' in metrics_list:
+        cpu_query = f"SELECT * FROM cpu_usage WHERE time >= '{start_timestamp}' AND time <= '{end_timestamp}'"
+        cpu_result = client.query(cpu_query)
+        formatted_data['cpu_usage'] = format_query_results(cpu_result)
+
+    if 'memory_usage' in metrics_list:
+        memory_query = f"SELECT * FROM memory_usage WHERE time >= '{start_timestamp}' AND time <= '{end_timestamp}'"
+        memory_result = client.query(memory_query)
+        formatted_data['memory_usage'] = format_query_results(memory_result)
+
+    if 'network_stats' in metrics_list:
+        network_query = f"SELECT * FROM network_stats WHERE time >= '{start_timestamp}' AND time <= '{end_timestamp}'"
+        network_result = client.query(network_query)
+        formatted_data['network_stats'] = format_query_results(network_result)
+
+    if 'tcp_stats' in metrics_list:
+        tcp_query = f"SELECT * FROM tcp_stats WHERE time >= '{start_timestamp}' AND time <= '{end_timestamp}'"
+        tcp_result = client.query(tcp_query)
+        formatted_data['tcp_stats'] = format_query_results(tcp_result)
+
+
+    formatted_data = {
+        'cpu_usage': format_query_results(cpu_result),
+        'memory_usage': format_query_results(memory_result),
+        'tcp_stats': format_query_results(tcp_result),
+        'network_stats': format_query_results(network_result)
+    }
 
     return jsonify(formatted_data)
 
+def format_query_results(result):
+    formatted_points = []
+    for point in result.get_points():
+        time_obj = datetime.strptime(point['time'], '%Y-%m-%dT%H:%M:%SZ')
+        formatted_time = time_obj.strftime('%Y-%m-%d %H:%M:%S')
+        point['time'] = formatted_time
+        formatted_points.append(point)
+    return formatted_points
 
 if __name__ == '__main__':
-    # 创建一个新的线程来追加写入CPU使用率和内存使用率到 InfluxDB
     thread = threading.Thread(target=append_usage_to_influxdb)
     thread.start()
-
-    # 运行Flask应用
     app.run(port=5001)
-
-
-
