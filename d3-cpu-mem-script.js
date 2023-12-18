@@ -142,11 +142,9 @@ function drawChart(svg, data, yAxisLabel) {
     svg.selectAll(".y-axis-label").remove();
     svg.append("text")
         .attr("class", "y-axis-label")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
-        .attr("x", 0 - (height / 2))
-        .attr("dy", "1em")
-        .style("text-anchor", "middle")
+        .attr("y", margin.left / 200) // 微调标签距离左边框的位置
+        .attr("x", 0) // 设置 x 坐标在顶部
+        .style("text-anchor", "start") // 文本开始于标签位置
         .text(yAxisLabel);
 }
 
