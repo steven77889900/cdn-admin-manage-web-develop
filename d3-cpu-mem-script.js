@@ -1,6 +1,11 @@
 // 全局变量定义
 var cpuSvg, memorySvg, networkSvg, tcpSvg, x, y, tooltip, height, margin;
-
+// 颜色映射
+var siteColorMap = {
+    "101": "red",
+    "102": "blue"
+    // 可以根据需要添加更多站点和颜色
+};
 document.addEventListener('DOMContentLoaded', function () {
     // 初始化 SVG 尺寸和边距
     margin = { top: 20, right: 30, bottom: 30, left: 50 };
@@ -61,13 +66,13 @@ function updateCharts() {
             var cpuData = filterDataBySite(data.cpu_usage, selectedSite);
             var memoryData = filterDataBySite(data.memory_usage, selectedSite);
             var networkData = filterDataBySite(data.network_stats, selectedSite);
-            var tcpData = filterDataBySite(data.tcp_stats, selectedSite);            
+            var tcpData = filterDataBySite(data.tcp_stats, selectedSite);
             processData(cpuSvg, cpuData, "CPU Usage (%)", d => d.cpu_usage);
             processData(memorySvg, memoryData, "Memory Usage (%)", d => d.memory_usage);
             processData(networkSvg, networkData, "Network Stats", d => d.bytes_sent); // 示例
             processData(tcpSvg, tcpData, "TCP Stats", d => d.ESTABLISHED); // 示例
             // 更新站点信息
-            updateSiteInfo(selectedSite);            
+            updateSiteInfo(selectedSite);
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
@@ -81,25 +86,30 @@ function filterDataBySite(data, selectedSite) {
 }
 
 
-function processData(svg, data, label, valueAccessor) {
+function processData(svg, data, yAxisLabel, valueAccessor) {
     if (!data || data.length === 0) {
-        drawChart(svg, [], label);
+        drawChart(svg, [], yAxisLabel);
         return;
     }
+    var nestedData = d3.group(data, d => d.site_code);
+    var siteData = Array.from(nestedData).map(([siteCode, values]) => {
+        return {
+            siteCode: siteCode,
+            values: values.map(d => ({
+                date: new Date(d.time),
+                value: valueAccessor(d)
+            })).sort((a, b) => a.date - b.date)
+        };
+    });
 
-    var chartData = data.map(d => ({
-        date: new Date(d.time),
-        value: valueAccessor(d),
-        sitecode: d.site_code
-    }));
-
-    drawChart(svg, chartData, label);
+    drawChart(svg, siteData, yAxisLabel);
 }
 
-function drawChart(svg, data, yAxisLabel) {
+function drawChart(svg, siteData, yAxisLabel) {
     // 更新比例尺的域
-    x.domain(d3.extent(data, d => d.date));
-    y.domain([0, d3.max(data, d => d.value)]);
+    x.domain(d3.extent(siteData.flatMap(d => d.values), d => d.date));
+    y.domain([0, d3.max(siteData.flatMap(d => d.values), d => d.value)]);
+
 
     // 更新 X 轴和 Y 轴
     svg.selectAll(".axis").remove();
@@ -117,26 +127,48 @@ function drawChart(svg, data, yAxisLabel) {
         .y(d => y(d.value));
 
     svg.selectAll(".line").remove();
+    siteData.forEach(function (site) {
+        var siteColor = siteColorMap[site.siteCode] || "steelblue"; // 使用映射的颜色或默认颜色
+
+        var path = svg.append("path")
+            .datum(site.values)
+            .attr("class", "line")
+            .attr("fill", "none")
+            .attr("stroke", siteColor)
+            .attr("stroke-width", 1.5)
+            .attr("d", line);
+
+    // 添加透明的触发区域用于提示框
     svg.append("path")
-        .datum(data)
-        .attr("class", "line")
+        .attr("class", "line-hover")
         .attr("fill", "none")
-        .attr("stroke", "steelblue")
-        .attr("stroke-width", 1.5)
-        .attr("d", line);
+        .attr("stroke", "transparent") // 透明色
+        .attr("stroke-width", 10) // 可调整触发区域的宽度
+        .attr("d", line(site.values))
+        .on("mouseover", function(event) {
+            var point = d3.pointer(event, this);
+            var d = site.values.find(p => Math.abs(x(p.date) - point[0]) < 10);
+            if (d) {
+                showTooltip(event, d, yAxisLabel, site.siteCode); // 传递 site.siteCode
+            }
+        })
+        .on("mouseout", hideTooltip);
+});
 
     // 更新圆点和交互
-    svg.selectAll(".dot").remove();
-    svg.selectAll(".dot")
-        .data(data)
-        .enter().append("circle")
-        .attr("class", "dot")
-        .attr("r", 1.5)
-        .attr("cx", d => x(d.date))
-        .attr("cy", d => y(d.value))
-        .attr("fill", "blue")
-        .on("mouseover", (event, d) => showTooltip(event, d, yAxisLabel))
-        .on("mouseout", hideTooltip);
+    // svg.selectAll(".dot").remove();
+    // siteData.forEach(function (site) {
+    //     svg.selectAll(".dot")
+    //         .data(site.values)
+    //         .enter().append("circle")
+    //         .attr("class", "dot")
+    //         .attr("r", 1.5)
+    //         .attr("cx", d => x(d.date))
+    //         .attr("cy", d => y(d.value))
+    //         .attr("fill", "blue")
+    //         .on("mouseover", (event, d) => showTooltip(event, d, yAxisLabel))
+    //         .on("mouseout", hideTooltip);
+    // });
 
     // 添加 Y 轴标签
     svg.selectAll(".y-axis-label").remove();
@@ -148,11 +180,11 @@ function drawChart(svg, data, yAxisLabel) {
         .text(yAxisLabel);
 }
 
-function showTooltip(event, d, yAxisLabel) {
+function showTooltip(event, d, yAxisLabel, siteCode) {
     tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-    tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + d.sitecode)
+        tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + siteCode)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
 }
