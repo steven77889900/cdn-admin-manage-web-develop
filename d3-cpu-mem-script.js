@@ -71,12 +71,28 @@ function updateCharts() {
             processData(memorySvg, memoryData, "Memory Usage (%)", d => d.memory_usage);
             processData(networkSvg, networkData, "Network Stats", d => d.bytes_sent); // 示例
             processData(tcpSvg, tcpData, "TCP Stats", d => d.ESTABLISHED); // 示例
+            updateTCPDataNames(tcpData); // 新增函数调用
             // 更新站点信息
             updateSiteInfo(selectedSite);
         })
         .catch(error => {
             console.error('Error fetching data: ', error);
         });
+    // 新增函数，更新 TCP 数据名称列表
+    function updateTCPDataNames(tcpData) {
+        var tcpDataNamesDiv = document.getElementById("tcp-data-names");
+        tcpDataNamesDiv.innerHTML = ""; // 清空现有内容
+
+        // 假设 tcpData 是一个对象数组，每个对象表示一条 TCP 数据
+        if (tcpData && tcpData.length > 0) {
+            var dataKeys = Object.keys(tcpData[0]); // 获取键名
+            dataKeys.forEach(key => {
+                var p = document.createElement("p");
+                p.textContent = key;
+                tcpDataNamesDiv.appendChild(p);
+            });
+        }
+    }
 }
 function filterDataBySite(data, selectedSite) {
     if (selectedSite) {
@@ -138,22 +154,22 @@ function drawChart(svg, siteData, yAxisLabel) {
             .attr("stroke-width", 1.5)
             .attr("d", line);
 
-    // 添加透明的触发区域用于提示框
-    svg.append("path")
-        .attr("class", "line-hover")
-        .attr("fill", "none")
-        .attr("stroke", "transparent") // 透明色
-        .attr("stroke-width", 10) // 可调整触发区域的宽度
-        .attr("d", line(site.values))
-        .on("mouseover", function(event) {
-            var point = d3.pointer(event, this);
-            var d = site.values.find(p => Math.abs(x(p.date) - point[0]) < 10);
-            if (d) {
-                showTooltip(event, d, yAxisLabel, site.siteCode); // 传递 site.siteCode
-            }
-        })
-        .on("mouseout", hideTooltip);
-});
+        // 添加透明的触发区域用于提示框
+        svg.append("path")
+            .attr("class", "line-hover")
+            .attr("fill", "none")
+            .attr("stroke", "transparent") // 透明色
+            .attr("stroke-width", 10) // 可调整触发区域的宽度
+            .attr("d", line(site.values))
+            .on("mouseover", function (event) {
+                var point = d3.pointer(event, this);
+                var d = site.values.find(p => Math.abs(x(p.date) - point[0]) < 10);
+                if (d) {
+                    showTooltip(event, d, yAxisLabel, site.siteCode); // 传递 site.siteCode
+                }
+            })
+            .on("mouseout", hideTooltip);
+    });
 
     // 更新圆点和交互
     // svg.selectAll(".dot").remove();
@@ -184,7 +200,7 @@ function showTooltip(event, d, yAxisLabel, siteCode) {
     tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-        tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + siteCode)
+    tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + siteCode)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
 }

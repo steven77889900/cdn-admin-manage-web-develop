@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>CPU and Memory Usage Chart</title>
@@ -14,6 +15,7 @@
             border-radius: 8px;
             pointer-events: none;
         }
+
         #sidebar {
             position: fixed;
             top: 0;
@@ -22,24 +24,43 @@
             height: 100%;
             background-color: lightgray;
         }
+
         #chart-container {
             margin-left: 220px;
         }
-        ul, li {
+
+        ul,
+        li {
             border: 1px solid blue;
             background-color: lightblue;
         }
+
         #chart-container div {
             border: 1px solid black;
         }
+
         #site-info {
             margin-top: 20px;
             padding: 10px;
             background-color: #f0f0f0;
             border: 1px solid #d3d3d3;
         }
+
+        .flex-container {
+            display: flex;
+            align-items: flex-start;
+            /* 根据需要调整对齐方式 */
+        }
+
+        #tcp-chart,
+        #tcp-data-names {
+            margin-right: 20px;
+            /* 在元素之间添加一些间隔 */
+            /* 如果需要，可以为每个子元素添加更多样式（如宽度、边框等） */
+        }
     </style>
 </head>
+
 <body>
     <div id="sidebar">
         <ul id="sidebar-menu">
@@ -56,7 +77,7 @@
                 <option value="">所有站点</option>
                 <option value="101">站点 101</option>
                 <option value="102">站点 102</option>
-            </select>            
+            </select>
             <label for="start-time">开始时间:</label>
             <input type="datetime-local" id="start-time">
             <label for="end-time">结束时间:</label>
@@ -70,8 +91,13 @@
         <div id="cpu-chart"></div>
         <div id="memory-chart"></div>
         <div id="network-chart"></div>
-        <div id="tcp-chart"></div>
+        <div class="flex-container">
+            <div id="tcp-chart"></div>
+            <div id="tcp-data-names" class="tcp-data-list"></div>
+        </div>
+
     </div>
     <script src="d3-cpu-mem-script.js"></script>
 </body>
+
 </html>
