@@ -217,7 +217,11 @@ function showTooltip(event, d, yAxisLabel, siteCode) {
     tooltip.transition()
         .duration(200)
         .style("opacity", .9);
-    tooltip.html("时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + siteCode)
+    var tooltipContent = yAxisLabel.includes("TCP") ?
+        "时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "<br/>站点代码: " + siteCode :
+        "时间: " + d.date.toLocaleString() + "<br/>" + yAxisLabel + ": " + d.value + "%" + "<br/>站点代码: " + siteCode;
+
+    tooltip.html(tooltipContent)
         .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 28) + "px");
 }
