@@ -70,7 +70,7 @@ function updateCharts() {
             processData(cpuSvg, cpuData, "CPU Usage (%)", d => d.cpu_usage);
             processData(memorySvg, memoryData, "Memory Usage (%)", d => d.memory_usage);
             processData(networkSvg, networkData, "Network Stats", d => d.bytes_sent); // 示例
-            processData(tcpSvg, tcpData, "TCP Stats", d => d.ESTABLISHED); // 示例
+            processData(tcpSvg, tcpData, "Total TCP Connections", null, true); // 示例
             updateTCPDataNames(tcpData); // 新增函数调用
             // 更新站点信息
             updateSiteInfo(selectedSite);
@@ -102,25 +102,42 @@ function filterDataBySite(data, selectedSite) {
 }
 
 
-function processData(svg, data, yAxisLabel, valueAccessor) {
+function processData(svg, data, yAxisLabel, valueAccessor, isTcpData = false) {
     if (!data || data.length === 0) {
         drawChart(svg, [], yAxisLabel);
         return;
     }
     var nestedData = d3.group(data, d => d.site_code);
     var siteData = Array.from(nestedData).map(([siteCode, values]) => {
-        return {
-            siteCode: siteCode,
-            values: values.map(d => ({
+        if (isTcpData) {
+            values = values.map(d => ({
+                date: new Date(d.time),
+                value: tcpTotalConnections(d)
+            })).sort((a, b) => a.date - b.date);
+        } else {
+            values = values.map(d => ({
                 date: new Date(d.time),
                 value: valueAccessor(d)
-            })).sort((a, b) => a.date - b.date)
+            })).sort((a, b) => a.date - b.date);
+        }
+        return {
+            siteCode: siteCode,
+            values: values
         };
     });
 
     drawChart(svg, siteData, yAxisLabel);
 }
-
+function tcpTotalConnections(tcpData) {
+    // 累加所有TCP连接状态的计数
+    var totalConnections = 0;
+    for (var key in tcpData) {
+        if (tcpData.hasOwnProperty(key) && key !== "site_code" && key !== "time") {
+            totalConnections += tcpData[key] || 0; // 使用`|| 0`确保空值被视为0
+        }
+    }
+    return totalConnections;
+}
 function drawChart(svg, siteData, yAxisLabel) {
     // 更新比例尺的域
     x.domain(d3.extent(siteData.flatMap(d => d.values), d => d.date));
