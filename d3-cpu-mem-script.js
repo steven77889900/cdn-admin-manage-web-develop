@@ -29,11 +29,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始加载图表
     updateCharts();
-
+    // 在页面加载时调用函数，创建 TCP 数据的单选框
+    createTCPRadioButtons();
     // 每3秒自动更新图表
     setInterval(updateCharts, 3000);
 });
+function createTCPRadioButtons() {
+    var tcpDataNamesDiv = document.getElementById("tcp-data-names");
 
+    // 示例数据键，实际应从数据中获取
+    var tcpDataKeys = ["ESTABLISHED", "LISTEN", "SYN_SENT", "SYN_RECV", "FIN_WAIT1", "FIN_WAIT2", "TIME_WAIT", "CLOSE", "CLOSE_WAIT", "LAST_ACK", "CLOSING"]; 
+
+    tcpDataKeys.forEach(function(key) {
+        var radioWrapper = document.createElement("div");
+
+        var radioInput = document.createElement("input");
+        radioInput.type = "radio";
+        radioInput.id = key;
+        radioInput.name = "tcpDataName";
+        radioInput.value = key;
+
+        var label = document.createElement("label");
+        label.htmlFor = key;
+        label.appendChild(document.createTextNode(key));
+
+        radioWrapper.appendChild(radioInput);
+        radioWrapper.appendChild(label);
+        tcpDataNamesDiv.appendChild(radioWrapper);
+    });
+}
 function createSvg(selector, width, height) {
     return d3.select(selector).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -71,7 +95,7 @@ function updateCharts() {
             processData(memorySvg, memoryData, "Memory Usage (%)", d => d.memory_usage);
             processData(networkSvg, networkData, "Network Stats", d => d.bytes_sent); // 示例
             processData(tcpSvg, tcpData, "Total TCP Connections", null, true); // 示例
-            updateTCPDataNames(tcpData); // 新增函数调用
+            // updateTCPDataNames(tcpData); // 新增函数调用
             // 更新站点信息
             updateSiteInfo(selectedSite);
         })
@@ -79,20 +103,21 @@ function updateCharts() {
             console.error('Error fetching data: ', error);
         });
     // 新增函数，更新 TCP 数据名称列表
-    function updateTCPDataNames(tcpData) {
-        var tcpDataNamesDiv = document.getElementById("tcp-data-names");
-        tcpDataNamesDiv.innerHTML = ""; // 清空现有内容
+    // function updateTCPDataNames(tcpData) {
+    //     var tcpDataNamesDiv = document.getElementById("tcp-data-names");
+    //     tcpDataNamesDiv.innerHTML = ""; // 清空现有内容
 
-        // 假设 tcpData 是一个对象数组，每个对象表示一条 TCP 数据
-        if (tcpData && tcpData.length > 0) {
-            var dataKeys = Object.keys(tcpData[0]); // 获取键名
-            dataKeys.forEach(key => {
-                var p = document.createElement("p");
-                p.textContent = key;
-                tcpDataNamesDiv.appendChild(p);
-            });
-        }
-    }
+    //     // 假设 tcpData 是一个对象数组，每个对象表示一条 TCP 数据
+    //     if (tcpData && tcpData.length > 0) {
+    //         var dataKeys = Object.keys(tcpData[0]); // 获取键名
+    //         dataKeys.forEach(key => {
+    //             var p = document.createElement("p");
+    //             p.textContent = key;
+    //             tcpDataNamesDiv.appendChild(p);
+    //         });
+    //     }
+    // }
+    
 }
 function filterDataBySite(data, selectedSite) {
     if (selectedSite) {
